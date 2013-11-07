@@ -147,9 +147,12 @@ class BaseRequestHandler(tornado.web.RequestHandler, TemplateRendering):
 class MainHandler(BaseRequestHandler):
     @tornado.gen.coroutine
     def get(self):
-        workspaces = redis_decode(redis_db["workspaces"])
-        workspace_name = workspaces[0]["name"]
-        workspace_id = workspaces[0]["id"]
+        try:
+            workspaces = redis_decode(redis_db["workspaces"])
+            workspace_name = workspaces[0]["name"]
+            workspace_id = workspaces[0]["id"]
+        except KeyError:
+            self.redirect("/toggl/update")
 
         projects = redis_decode(redis_db["projects"])
         tags = redis_decode(redis_db["tags"])
