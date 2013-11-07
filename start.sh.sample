@@ -1,0 +1,7 @@
+#!/bin/sh
+#
+# File: start.sh
+#
+#
+
+python main.py your-app-key-here
