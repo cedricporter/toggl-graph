@@ -17,6 +17,8 @@ import tornado.httputil
 import tornado.ioloop
 import tornado.web
 
+# tmp, just for test
+data = {}
 
 yourdate = dateutil.parser.parse('2013-11-07T22:27:00.873224+08:00')
 tz = pytz.timezone("Asia/Shanghai")
@@ -114,8 +116,86 @@ class MainHandler(tornado.web.RequestHandler):
         self.write(ret)
 
 
+class WorkspacesHandler(tornado.web.RequestHandler):
+    @tornado.gen.coroutine
+    def get(self):
+        url, method = TOGGL_API.workspaces
+        res = yield tornado.httpclient.AsyncHTTPClient().fetch(
+            request=url,
+            method=method,
+            auth_username=username,
+            auth_password=password,
+        )
+
+        workspaces = tornado.escape.json_decode(res.body)
+        data["workspaces"] = workspaces
+
+        self.write(pprint.pformat(workspaces))
+
+
+class ProjectsHandler(tornado.web.RequestHandler):
+    @tornado.gen.coroutine
+    def get(self):
+        # projects
+        url, method = TOGGL_API.projects
+        url = url % data["workspaces"][0]["id"]
+        res = yield tornado.httpclient.AsyncHTTPClient().fetch(
+            request=url,
+            method=method,
+            auth_username=username,
+            auth_password=password,
+        )
+
+        projects = tornado.escape.json_decode(res.body)
+        data["projects"] = projects
+
+        self.write(pprint.pformat(projects))
+
+
+class TagsHandler(tornado.web.RequestHandler):
+    @tornado.gen.coroutine
+    def get(self):
+        url, method = TOGGL_API.tags
+        url = url % data["workspaces"][0]["id"]
+        res = yield tornado.httpclient.AsyncHTTPClient().fetch(
+            request=url,
+            method=method,
+            auth_username=username,
+            auth_password=password,
+        )
+
+        tags = tornado.escape.json_decode(res.body)
+        self.write(pprint.pformat(tags))
+
+
+class TimeEntriesHandler(tornado.web.RequestHandler):
+    @tornado.gen.coroutine
+    def get(self):
+        url, method = TOGGL_API.time_entries
+        start_date = tz.localize(datetime.datetime(2013, 11, 7)).isoformat()
+        end_date = tz.localize(datetime.datetime(2013, 11, 8)).isoformat()
+
+        params = {"start_date": start_date,
+                  "end_date": end_date, }
+        url = url_concat(url, params)
+
+        res = yield tornado.httpclient.AsyncHTTPClient().fetch(
+            request=url,
+            method=method,
+            auth_username=username,
+            auth_password=password,
+        )
+
+        time_entries = tornado.escape.json_decode(res.body)
+        self.write(pprint.pformat(time_entries))
+
+
 application = tornado.web.Application([
     (r"/", MainHandler),
+    (r"/toggl/workspaces", WorkspacesHandler),
+    (r"/toggl/projects", ProjectsHandler),
+    (r"/toggl/tags", TagsHandler),
+    (r"/toggl/time_entries", TimeEntriesHandler),
 ],
 debug=True,
 )
