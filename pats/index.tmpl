@@ -20,21 +20,34 @@
       {% endfor %}
     </p>
     <h2>Time Entries</h2>
-    <p>
-      {% for entry in time_entries %}
-	<p>
-	  <span>{{ projects_id_dict.get(entry.pid, {}).get("name") }}</span>
-	  <span>{{ entry.description }} </span>
-	  {{ entry.duration }}
-	  {% if entry.tags %}
-	    <span>Tags: </span>
-	    {% for tag in entry.tags %}
-	      <span>{{ tag }}, </span>
-	    {% endfor %}
-	  {% endif %}
-	</p>
-      {% endfor %}
-    </p>
+
+    <table class="table table-striped" id="people-list">
+      <thead>
+	<th>项目</th>
+	<th>描述</th>
+	<th>持续时间</th>
+	<th>标签</th>
+      </thead>
+      <tbody>
+	{% for entry in time_entries %}
+	  <tr>
+	    <td>{{ projects_id_dict.get(entry.pid, {}).get("name") }}</td>
+	    <td>{{ entry.description }}</td>
+	    <td>{{ entry.duration }}</td>
+	    <td>
+	      {% if entry.tags %}
+		{% for tag in entry.tags %}
+		  {% if tag %}
+		    {{ tag }},
+		  {% endif %}
+		{% endfor %}
+	      {% endif %}
+	    </td>
+	  </tr>
+	{% endfor %}
+
+      </tbody>
+    </table>
 
   </div>
 {% endblock %}

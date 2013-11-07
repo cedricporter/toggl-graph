@@ -39,7 +39,7 @@ DEFAULT_ENCODING = "utf-8"
 yourdate = dateutil.parser.parse('2013-11-07T22:27:00.873224+08:00')
 tz = pytz.timezone("Asia/Shanghai")
 
-redis_db = redis.StrictRedis()
+redis_db = redis.StrictRedis(db=5)
 
 username = sys.argv[1]
 password = 'api_token'
@@ -234,8 +234,17 @@ class TimeEntriesHandler(BaseRequestHandler):
     @tornado.gen.coroutine
     def get(self):
         url, method = TOGGL_API.time_entries
-        start_date = tz.localize(datetime.datetime(2013, 11, 7)).isoformat()
-        end_date = tz.localize(datetime.datetime(2013, 11, 8)).isoformat()
+
+        today = datetime.datetime.today()
+        tomorrow = today + datetime.timedelta(days=1)
+        today = datetime.datetime.today() - datetime.timedelta(days=1)
+
+        start_date = tz.localize(
+            datetime.datetime(today.year, today.month, today.day)
+        ).isoformat()
+        end_date = tz.localize(
+            datetime.datetime(tomorrow.year, tomorrow.month, tomorrow.day)
+        ).isoformat()
 
         params = {"start_date": start_date,
                   "end_date": end_date, }
@@ -249,6 +258,7 @@ class TimeEntriesHandler(BaseRequestHandler):
         )
 
         time_entries = tornado.escape.json_decode(res.body)
+        time_entries.reverse()
         redis_db["time_entries"] = redis_encode(time_entries)
         self.redirect("/")
 
