@@ -169,6 +169,7 @@ class MainHandler(BaseRequestHandler):
             if "stop" in entry:
                 entry["stop"] = dateutil.parser.parse(entry["stop"])
                 entry["duration"] = entry["stop"] - entry["start"]
+            entry["start_time"] = entry["start"].strftime("%Y-%m-%d %H:%M:%S")
 
         self.render("index.tmpl",
                     workspace_name=workspace_name,
