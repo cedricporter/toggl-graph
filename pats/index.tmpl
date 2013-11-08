@@ -10,15 +10,17 @@
     <h2>Projects</h2>
     <p>
       {% for project in projects %}
-	<span>{{ project.name }}, </span>
+	<span class="label label-info">{{ project.name }}</span>
       {% endfor %}
     </p>
     <h2>Tags</h2>
     <p>
       {% for tag in tags %}
-	<span>{{ tag.name }}, </span>
+	<code>{{ tag.name }}</code>
       {% endfor %}
     </p>
+
+    <h2>Graph</h2>
 
     <canvas id="myChart" width="640" height="480"></canvas>
 
