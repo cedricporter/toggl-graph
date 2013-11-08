@@ -7,7 +7,7 @@ import sys
 import os
 import datetime
 import pprint
-
+import logging
 import base64
 import pickle
 import redis
@@ -25,6 +25,8 @@ import tornado.ioloop
 import tornado.web
 from jinja2 import Environment, FileSystemLoader
 
+
+logging.basicConfig(filename='log.log', level=logging.INFO)
 
 # tempalte engine
 template_path = os.path.join(os.path.dirname(__file__), "pats")
@@ -212,6 +214,8 @@ class ProjectsHandler(BaseRequestHandler):
         projects = tornado.escape.json_decode(res.body)
         redis_db["projects"] = redis_encode(projects)
 
+        logging.info(projects)
+
         self.redirect("/toggl/tags")
 
 
@@ -231,6 +235,8 @@ class TagsHandler(BaseRequestHandler):
         tags = tornado.escape.json_decode(res.body)
         redis_db["tags"] = redis_encode(tags)
         self.redirect("/toggl/time_entries")
+
+        logging.info(tags)
 
 
 class TimeEntriesHandler(BaseRequestHandler):
@@ -265,6 +271,8 @@ class TimeEntriesHandler(BaseRequestHandler):
         redis_db["time_entries"] = redis_encode(time_entries)
         self.redirect("/")
 
+        logging.info("entries len = %s" % len(time_entries))
+
 
 class TimeEntriesDetailHandler(BaseRequestHandler):
     @tornado.gen.coroutine
@@ -294,6 +302,8 @@ class TimeEntriesDetailHandler(BaseRequestHandler):
 
 class UpdateHandler(BaseRequestHandler):
     def get(self):
+        logging.info("starting update")
+
         self.redirect("/toggl/workspaces")
 
 
