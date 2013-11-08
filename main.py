@@ -271,7 +271,8 @@ class TimeEntriesHandler(BaseRequestHandler):
         redis_db["time_entries"] = redis_encode(time_entries)
         self.redirect("/")
 
-        logging.info("entries len = %s" % len(time_entries))
+        logging.info("entries params = %s\nlen = %s" % (
+            params, len(time_entries)))
 
 
 class TimeEntriesDetailHandler(BaseRequestHandler):
