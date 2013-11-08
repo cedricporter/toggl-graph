@@ -32,7 +32,11 @@
       <tbody>
 	{% for entry in time_entries %}
 	  <tr>
-	    <td>{{ projects_id_dict.get(entry.pid, {}).get("name") }}</td>
+	    <td>
+              <span class="label label-info">
+                {{ projects_id_dict.get(entry.pid, {}).get("name") }}
+              </span>
+            </td>
 	    <td>{{ entry.description }}</td>
 	    <td>{{ entry.start_time }}</td>
 	    <td>{{ entry.duration }}</td>
