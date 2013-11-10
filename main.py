@@ -166,6 +166,13 @@ class MainHandler(BaseRequestHandler):
         summary = {}
 
         for entry in time_entries:
+            # filter tags
+            tags = entry["tags"]
+            for i, tag in enumerate(tags):
+                if tag.startswith("ztask-"):
+                    tags[i] = "asana"
+
+            # time
             if "start" in entry:
                 entry["start"] = dateutil.parser.parse(entry["start"])
             if "stop" in entry:
@@ -266,14 +273,14 @@ class TimeEntriesHandler(BaseRequestHandler):
         url, method = TOGGL_API.time_entries
 
         today = datetime.datetime.today()
-        tomorrow = today + datetime.timedelta(days=1)
-        today = datetime.datetime.today() - datetime.timedelta(days=1)
+        end_date = today + datetime.timedelta(days=1)
+        start_date = datetime.datetime.today() - datetime.timedelta(days=5)
 
         start_date = tz.localize(
-            datetime.datetime(today.year, today.month, today.day)
+            datetime.datetime(start_date.year, start_date.month, start_date.day)
         ).isoformat()
         end_date = tz.localize(
-            datetime.datetime(tomorrow.year, tomorrow.month, tomorrow.day)
+            datetime.datetime(end_date.year, end_date.month, end_date.day)
         ).isoformat()
 
         params = {"start_date": start_date,
