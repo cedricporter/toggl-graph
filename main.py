@@ -158,6 +158,7 @@ class MainHandler(BaseRequestHandler):
 
         projects = redis_decode(redis_db["projects"])
         tags = redis_decode(redis_db["tags"])
+        tags = filter(lambda t: not t["name"].startswith("ztask-"), tags)
         time_entries = redis_decode(redis_db["time_entries"])
 
         projects_id_dict = dict((proj["id"], proj)
@@ -167,10 +168,10 @@ class MainHandler(BaseRequestHandler):
 
         for entry in time_entries:
             # filter tags
-            tags = entry["tags"]
-            for i, tag in enumerate(tags):
+            entry_tags = entry["tags"]
+            for i, tag in enumerate(entry_tags):
                 if tag.startswith("ztask-"):
-                    tags[i] = "asana"
+                    entry_tags[i] = "asana"
 
             # time
             if "start" in entry:
