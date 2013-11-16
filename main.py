@@ -12,6 +12,8 @@ import base64
 import pickle
 import redis
 
+from asana import asana
+from jinja2 import Environment, FileSystemLoader
 from jinja2 import TemplateNotFound
 from tornado.escape import xhtml_escape
 from tornado.httputil import url_concat
@@ -23,7 +25,6 @@ import tornado.httpclient
 import tornado.httputil
 import tornado.ioloop
 import tornado.web
-from jinja2 import Environment, FileSystemLoader
 
 
 logging.basicConfig(filename='log.log', level=logging.INFO)
@@ -45,6 +46,8 @@ redis_db = redis.StrictRedis(db=5)
 
 username = sys.argv[1]
 password = 'api_token'
+
+asana_appkey = sys.argv[2]
 
 
 def redis_encode(session_dict):
@@ -144,6 +147,77 @@ class BaseRequestHandler(tornado.web.RequestHandler, TemplateRendering):
         self.write({"status": status, "msg": msg,
                     "result": result, "why": why})
         self.finish()
+
+
+class AsanaUpdateHandler(BaseRequestHandler):
+
+    def fill_subtasks(self, api, task_id, node, level=1):
+        tasks = api.get_subtasks(task_id)
+
+        for task in tasks:
+            task_dict = {"name": task["name"], "children": []}
+            node["children"].append(task_dict)
+            self.fill_subtasks(api, task["id"], task_dict, level + 1)
+
+    def get(self):
+        root_task_tree = []
+
+        asana_api = asana.AsanaAPI(asana_appkey, debug=True)
+        myspaces = asana_api.list_workspaces()
+
+        workspaces = dict((work["name"], work["id"]) for work in myspaces)
+        workspace_id = workspaces["Personal"]
+
+        users = asana_api.list_users()
+        users = dict((u["name"], u["id"]) for u in users)
+
+        user_name = "Stupid ET"
+        user_id = users[user_name]
+
+        # 列出项目
+        projects = asana_api.list_projects(workspace_id)
+        for proj in projects:
+            proj_dict = {"name": proj["name"], "children": []}
+            root_task_tree.append(proj_dict)
+
+            # 列出项目的task
+            tasks = asana_api.get_project_tasks(proj["id"], True)
+
+            # 列出task的子task
+            for task in tasks:
+                task_dict = {"name": task["name"], "children": []}
+                proj_dict["children"].append(task_dict)
+                self.fill_subtasks(asana_api, task["id"], task_dict)
+
+        redis_db["asana_tree"] = redis_encode({"name": "ET", "children": root_task_tree})
+
+        self.write({"name": "ET", "children": root_task_tree})
+
+
+class AsanaJsonHandler(BaseRequestHandler):
+    def fill_size(self, root):
+        root["size"] = 20
+        for child in root["children"]:
+            self.fill_size(child)
+
+    @tornado.gen.coroutine
+    def get(self):
+        try:
+            asana_tree = redis_decode(redis_db["asana_tree"])
+            self.fill_size(asana_tree)
+            self.write(asana_tree)
+        except KeyError:
+            r = self.request
+            url = "%s://%s/%s" % (r.protocol, r.host, "asana/update")
+
+            res = yield tornado.httpclient.AsyncHTTPClient().fetch(url)
+
+            self.write(res)
+
+
+class AsanaPageHandler(BaseRequestHandler):
+    def get(self):
+        self.render("asana.tmpl")
 
 
 class MainHandler(BaseRequestHandler):
@@ -339,6 +413,9 @@ class UpdateHandler(BaseRequestHandler):
 
 application = tornado.web.Application([
     (r"/", MainHandler),
+    (r"/asana/?", AsanaPageHandler),
+    (r"/asana/update", AsanaUpdateHandler),
+    (r"/asana/json", AsanaJsonHandler),
 
     (r"/toggl/update", UpdateHandler),
     (r"/toggl/workspaces", WorkspacesHandler),

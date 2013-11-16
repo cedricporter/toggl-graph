@@ -4,4 +4,4 @@
 #
 #
 
-python main.py your-app-key-here
+python main.py your-toggl-app-key your-asana-app-key
