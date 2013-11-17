@@ -1,7 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 #
 # File: start.sh
 #
 #
 
+source .env/bin/activate
 python main.py your-toggl-app-key your-asana-app-key

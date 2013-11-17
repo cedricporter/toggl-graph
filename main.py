@@ -36,6 +36,7 @@ jinja2_env = Environment(loader=FileSystemLoader([template_path]),
 
 
 DEFAULT_ENCODING = "utf-8"
+USER_AGENT = "huabz"
 
 # tmp, just for test
 
@@ -94,6 +95,8 @@ class TOGGL_API(object):
     tags = ("https://www.toggl.com/api/v8/workspaces/%s/tags", "GET")
     time_entries = ("https://www.toggl.com/api/v8/time_entries", "GET")
     time_entry_detail = ("https://www.toggl.com/api/v8/time_entries/%s", "GET")
+    summary_report = ("https://toggl.com/reports/api/v2/summary", "GET")
+    weekly_report = ("https://toggl.com/reports/api/v2/weekly", "GET")
 
 
 class TemplateRendering(object):
@@ -411,11 +414,134 @@ class UpdateHandler(BaseRequestHandler):
         self.redirect("/toggl/workspaces")
 
 
+class SummaryReportUpdateHandler(BaseRequestHandler):
+    @tornado.gen.coroutine
+    def get(self):
+        url, method = TOGGL_API.summary_report
+
+        workspaces = redis_decode(redis_db["workspaces"])
+        params = {"user_agent": USER_AGENT,
+                  "workspace_id": workspaces[0]["id"], }
+        url = url_concat(url, params)
+
+        res = yield tornado.httpclient.AsyncHTTPClient().fetch(
+            request=url,
+            method=method,
+            auth_username=username,
+            auth_password=password,
+        )
+
+        report = tornado.escape.json_decode(res.body)
+        redis_db["summary_report"] = redis_encode(report)
+
+        self.write(report)
+
+
+class SummaryReportHandler(BaseRequestHandler):
+    def get(self):
+
+        report = redis_decode(redis_db["summary_report"])
+
+        self.write(report)
+
+
+class WeeklyReportUpdateHandler(BaseRequestHandler):
+    @tornado.gen.coroutine
+    def get(self):
+        url, method = TOGGL_API.weekly_report
+
+        workspaces = redis_decode(redis_db["workspaces"])
+        params = {"user_agent": USER_AGENT,
+                  "workspace_id": workspaces[0]["id"], }
+        url = url_concat(url, params)
+
+        res = yield tornado.httpclient.AsyncHTTPClient().fetch(
+            request=url,
+            method=method,
+            auth_username=username,
+            auth_password=password,
+        )
+
+        report = tornado.escape.json_decode(res.body)
+        redis_db["week_report"] = redis_encode(report)
+
+        self.write(report)
+
+
+class WeeklyReportJsonHandler(BaseRequestHandler):
+    def get(self):
+        report = redis_decode(redis_db["week_report"])
+
+        data = report["data"]
+
+        report = []
+        for day in data:
+            totals = [(total if total else 0) for total in day["totals"]]
+            d = {"title": day["title"]["project"],
+                 "totals": totals, }
+            report.append(d)
+
+        self.write({"data": report})
+
+
+class WeeklyReportTsvHandler(BaseRequestHandler):
+    @tornado.gen.coroutine
+    def get(self):
+        try:
+            report = redis_decode(redis_db["week_report"])
+        except KeyError:
+            r = self.request
+            url = "%s://%s/%s" % (r.protocol, r.host,
+                                  "/toggl/report/weekly/update")
+            yield tornado.httpclient.AsyncHTTPClient().fetch(url)
+            report = redis_decode(redis_db["week_report"])
+
+        data = report["data"]
+
+        report = []
+        for day in data:
+            totals = [(total / 1000.0 / 60 if total else 0)
+                      for total in day["totals"][:-1]]
+            d = {"title": day["title"]["project"],
+                 "totals": totals, }
+            report.append(d)
+
+        tsv = "date\t"
+        for proj in report:
+            tsv += "%s\t" % proj["title"]
+        tsv += "\n"
+
+        day_count = len(report[0]["totals"])
+        today = datetime.datetime.today()
+        start_day = today - datetime.timedelta(days=day_count - 1)
+        for i in xrange(day_count):
+            tsv += "%s\t" % (start_day + datetime.timedelta(i)).strftime("%Y%m%d")
+            for proj in report:
+                tsv += "%s\t" % proj["totals"][i]
+            tsv += "\n"
+
+        self.set_header("Content-Type", "text/plain")
+        self.write(tsv)
+
+
+class WeeklyReportHandler(BaseRequestHandler):
+    def get(self):
+        self.render("report_weekly.tmpl")
+
+
 application = tornado.web.Application([
     (r"/", MainHandler),
     (r"/asana/?", AsanaPageHandler),
     (r"/asana/update", AsanaUpdateHandler),
     (r"/asana/json", AsanaJsonHandler),
+
+    (r"/toggl/report/summary/update", SummaryReportUpdateHandler),
+    (r"/toggl/report/summary", SummaryReportHandler),
+
+    (r"/toggl/report/weekly/update", WeeklyReportUpdateHandler),
+    (r"/toggl/report/weekly/json", WeeklyReportJsonHandler),
+    (r"/toggl/report/weekly/tsv", WeeklyReportTsvHandler),
+    (r"/toggl/report/weekly", WeeklyReportHandler),
 
     (r"/toggl/update", UpdateHandler),
     (r"/toggl/workspaces", WorkspacesHandler),
