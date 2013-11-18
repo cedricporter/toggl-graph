@@ -492,7 +492,7 @@ class WeeklyReportTsvHandler(BaseRequestHandler):
         except KeyError:
             r = self.request
             url = "%s://%s/%s" % (r.protocol, r.host,
-                                  "/toggl/report/weekly/update")
+                                  "toggl/report/weekly/update")
             yield tornado.httpclient.AsyncHTTPClient().fetch(url)
             report = redis_decode(redis_db["week_report"])
 
