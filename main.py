@@ -450,9 +450,15 @@ class WeeklyReportUpdateHandler(BaseRequestHandler):
     def get(self):
         url, method = TOGGL_API.weekly_report
 
+        today = datetime.datetime.today()
+        yesterday = today - datetime.timedelta(days=1)
+        until = yesterday
+
         workspaces = redis_decode(redis_db["workspaces"])
         params = {"user_agent": USER_AGENT,
-                  "workspace_id": workspaces[0]["id"], }
+                  "workspace_id": workspaces[0]["id"],
+                  "until": until.strftime("%Y-%m-%d"),
+                  }
         url = url_concat(url, params)
 
         res = yield tornado.httpclient.AsyncHTTPClient().fetch(
@@ -511,10 +517,11 @@ class WeeklyReportTsvHandler(BaseRequestHandler):
             tsv += "%s\t" % proj["title"]
         tsv += "\n"
 
-        day_count = len(report[0]["totals"])
+        day_count = len(report[0]["totals"]) - 1
         today = datetime.datetime.today()
-        start_day = today - datetime.timedelta(days=day_count - 1)
-        for i in xrange(day_count):
+        yesterday = today - datetime.timedelta(days=1)
+        start_day = yesterday - datetime.timedelta(days=day_count)
+        for i in xrange(day_count + 1):
             tsv += "%s\t" % (start_day + datetime.timedelta(i)).strftime("%Y%m%d")
             for proj in report:
                 tsv += "%s\t" % proj["totals"][i]
