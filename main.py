@@ -577,6 +577,8 @@ class RebuildBlogHandler(BaseRequestHandler):
     def post(self):
         cmd = "sh rebuild_blog.sh"
         result, error = yield call_subprocess(cmd)
+
+        self.set_header("Content-Type", "text/plain")
         self.write(result)
 
     @coroutine
