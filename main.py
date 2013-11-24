@@ -574,10 +574,14 @@ def call_subprocess(cmd, stdin_data=None, stdin_async=True):
 
 class RebuildBlogHandler(BaseRequestHandler):
     @coroutine
-    def get(self):
+    def post(self):
         cmd = "sh rebuild_blog.sh"
         result, error = yield call_subprocess(cmd)
         self.write(result)
+
+    @coroutine
+    def get(self):
+        yield self.post()
 
 
 application = tornado.web.Application([
