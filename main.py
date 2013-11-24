@@ -576,6 +576,7 @@ class RebuildBlogHandler(BaseRequestHandler):
     @coroutine
     def get(self):
         cmd = "cd /home/projects/my-summary; git pull && rake gen_deploy"
+        cmd = "cd /home/projects/my-summary; ls -a"
         result, error = yield call_subprocess(cmd)
         self.write(result)
 
