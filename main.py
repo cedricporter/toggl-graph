@@ -555,7 +555,7 @@ def call_subprocess(cmd, stdin_data=None, stdin_async=True):
     sub_process = Subprocess(shlex.split(cmd),
                              stdin=stdin,
                              stdout=Subprocess.STREAM,
-                             stderr=Subprocess.STREAM,)
+                             stderr=Subprocess.STREAM, )
 
     if stdin_data:
         if stdin_async:
@@ -576,7 +576,7 @@ class RebuildBlogHandler(BaseRequestHandler):
     @coroutine
     def get(self):
         cmd = "cd /home/projects/my-summary; git pull && rake gen_deploy"
-        cmd = "cd /home/projects/my-summary; ls -a"
+        cmd = "ls -a"
         result, error = yield call_subprocess(cmd)
         self.write(result)
 
