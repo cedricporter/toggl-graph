@@ -3,6 +3,9 @@
 # Author: Hua Liang[Stupid ET] <et@everet.org>
 #
 
+import shlex
+import subprocess
+
 import sys
 import os
 import datetime
@@ -16,7 +19,10 @@ from asana import asana
 from jinja2 import Environment, FileSystemLoader
 from jinja2 import TemplateNotFound
 from tornado.escape import xhtml_escape
+from tornado.gen import coroutine, Task, Return
 from tornado.httputil import url_concat
+from tornado.ioloop import IOLoop
+from tornado.process import Subprocess
 import dateutil.parser
 import pytz
 import tornado.escape
@@ -536,11 +542,51 @@ class WeeklyReportHandler(BaseRequestHandler):
         self.render("report_weekly.tmpl")
 
 
+@coroutine
+def call_subprocess(cmd, stdin_data=None, stdin_async=True):
+    """call sub process async
+
+        Args:
+            cmd: str, commands
+            stdin_data: str, data for standard in
+            stdin_async: bool, whether use async for stdin
+    """
+    stdin = Subprocess.STREAM if stdin_async else subprocess.PIPE
+    sub_process = Subprocess(shlex.split(cmd),
+                             stdin=stdin,
+                             stdout=Subprocess.STREAM,
+                             stderr=Subprocess.STREAM,)
+
+    if stdin_data:
+        if stdin_async:
+            yield Task(sub_process.stdin.write, stdin_data)
+        else:
+            sub_process.stdin.write(stdin_data)
+
+    if stdin_async or stdin_data:
+        sub_process.stdin.close()
+
+    result, error = yield [Task(sub_process.stdout.read_until_close),
+                           Task(sub_process.stderr.read_until_close), ]
+
+    raise Return((result, error))
+
+
+class RebuildBlogHandler(BaseRequestHandler):
+    @coroutine
+    def get(self):
+        cmd = "(cd /home/projects/my-summary; git pull && rake gen_deploy)"
+        result, error = yield call_subprocess(cmd)
+        self.write(result)
+
+
 application = tornado.web.Application([
     (r"/", MainHandler),
     (r"/asana/?", AsanaPageHandler),
     (r"/asana/update", AsanaUpdateHandler),
     (r"/asana/json", AsanaJsonHandler),
+
+    (r"/hook/rebuild_blog", RebuildBlogHandler),
 
     (r"/toggl/report/summary/update", SummaryReportUpdateHandler),
     (r"/toggl/report/summary", SummaryReportHandler),
