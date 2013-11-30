@@ -1,0 +1,71 @@
+{% extends "base_frame.tmpl" %}
+{% block title %}Me{% endblock %}
+{% block main_content %}
+  <div class="jumbotron">
+    <h1>{{ workspace_name }}</h1>
+    <p class="lead">{{ workspace_id }}</p>
+    <p><a class="btn btn-lg btn-primary" href="/toggl/update" role="button">更新！</a></p>
+  </div>
+  <div>
+    <h2>Projects</h2>
+    <p>
+      {% for project in projects %}
+	<span class="label label-info">{{ project.name }}</span>
+      {% endfor %}
+    </p>
+    <h2>Tags</h2>
+    <p>
+      {% for tag in tags %}
+	<code>{{ tag.name }}</code>
+      {% endfor %}
+    </p>
+
+    <h2>Graph</h2>
+
+    <!-- <canvas id="myChart" width="820" height="480"></canvas> -->
+    <div id="my_graph"></div>
+
+    <h2>Time Entries</h2>
+
+    <table class="table table-striped" id="people-list">
+      <thead>
+	<th>项目+标签</th>
+	<th>描述</th>
+	<th>开始时间</th>
+	<th>持续时间</th>
+      </thead>
+      <tbody>
+	{% for entry in time_entries %}
+	  <tr>
+	    <td>
+              <span class="label label-info">
+                {{ projects_id_dict.get(entry.pid, {}).get("name") }}
+              </span>
+              &nbsp
+	      {% if entry.tags %}
+		{% for tag in entry.tags %}
+		  {% if tag %}
+		    <code>{{ tag }}</code>
+		  {% endif %}
+		{% endfor %}
+	      {% endif %}
+	    </td>
+	    <td>{{ entry.description }}</td>
+	    <td>{{ entry.start_time }}</td>
+	    <td>{{ entry.duration }}</td>
+	  </tr>
+	{% endfor %}
+
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
+{% block tailjs %}
+  {{ super() }}
+  <script src="{{ STATIC_URL }}js/my_graph.js" type="text/javascript"></script>
+  <script>
+   $(function () {
+     load_weekly_graph("#my_graph");
+  });
+  </script>
+{% endblock %}
