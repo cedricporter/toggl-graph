@@ -451,19 +451,25 @@ class SummaryReportHandler(BaseRequestHandler):
         self.write(report)
 
 
-class WeeklyReportUpdateHandler(BaseRequestHandler):
+class WeeklyReportMixIn(object):
+    def get_since_date(self):
+        today = datetime.datetime.today()
+        since = today - datetime.timedelta(days=7)
+
+        return since
+
+
+class WeeklyReportUpdateHandler(BaseRequestHandler, WeeklyReportMixIn):
     @tornado.gen.coroutine
     def get(self):
         url, method = TOGGL_API.weekly_report
 
-        today = datetime.datetime.today()
-        yesterday = today - datetime.timedelta(days=1)
-        until = yesterday
+        since = self.get_since_date()
 
         workspaces = redis_decode(redis_db["workspaces"])
         params = {"user_agent": USER_AGENT,
                   "workspace_id": workspaces[0]["id"],
-                  "until": until.strftime("%Y-%m-%d"),
+                  "since": since.strftime("%Y-%m-%d"),
                   }
         url = url_concat(url, params)
 
@@ -496,7 +502,7 @@ class WeeklyReportJsonHandler(BaseRequestHandler):
         self.write({"data": report})
 
 
-class WeeklyReportTsvHandler(BaseRequestHandler):
+class WeeklyReportTsvHandler(BaseRequestHandler, WeeklyReportMixIn):
     @tornado.gen.coroutine
     def get(self):
         try:
@@ -523,11 +529,9 @@ class WeeklyReportTsvHandler(BaseRequestHandler):
             tsv += "%s\t" % proj["title"]
         tsv += "\n"
 
-        day_count = len(report[0]["totals"]) - 1
-        today = datetime.datetime.today()
-        yesterday = today - datetime.timedelta(days=1)
-        start_day = yesterday - datetime.timedelta(days=day_count)
-        for i in xrange(day_count + 1):
+        day_count = len(report[0]["totals"])
+        start_day = self.get_since_date()
+        for i in xrange(day_count):
             tsv += "%s\t" % (start_day + datetime.timedelta(i)).strftime("%Y%m%d")
             for proj in report:
                 tsv += "%s\t" % proj["totals"][i]
