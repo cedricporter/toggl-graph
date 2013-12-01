@@ -579,7 +579,7 @@ def call_subprocess(cmd, stdin_data=None, stdin_async=True):
 class RebuildBlogHandler(BaseRequestHandler):
     @coroutine
     def post(self):
-        cmd = "sh rebuild_blog.sh"
+        cmd = "bash rebuild_blog.sh"
         result, error = yield call_subprocess(cmd)
 
         self.set_header("Content-Type", "text/plain")
