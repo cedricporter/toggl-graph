@@ -247,7 +247,7 @@ class MainHandler(BaseRequestHandler):
         projects_id_dict = dict((proj["id"], proj)
                                 for proj in projects)
 
-        summary = {}
+        # summary = {}
 
         for entry in time_entries:
             # filter tags
@@ -265,21 +265,21 @@ class MainHandler(BaseRequestHandler):
             entry["start_time"] = (entry["start"] + datetime.timedelta(hours=8)) \
                 .strftime("[%m-%d] %H:%M:%S")
 
-            if "duration" in entry:
-                if "pid" in entry:
-                    if (entry["pid"] in summary and
-                            isinstance(summary[entry["pid"]], datetime.timedelta)):
-                        summary[entry["pid"]] += entry["duration"]
-                    else:
-                        summary[entry["pid"]] = entry["duration"]
+            # if "duration" in entry:
+            #     if "pid" in entry:
+            #         if (entry["pid"] in summary and
+            #                 isinstance(summary[entry["pid"]], datetime.timedelta)):
+            #             summary[entry["pid"]] += entry["duration"]
+            #         else:
+            #             summary[entry["pid"]] = entry["duration"]
 
-        print summary
-        for project in projects:
-            if project["id"] not in summary:
-                summary[project["id"]] = 0
-            else:
-                summary[project["id"]] = (summary[project["id"]].total_seconds() /
-                                          3600.0)
+        # print summary
+        # for project in projects:
+        #     if project["id"] not in summary:
+        #         summary[project["id"]] = 0
+        #     else:
+        #         summary[project["id"]] = (summary[project["id"]].total_seconds() /
+        #                                   3600.0)
 
         self.render("index.tmpl",
                     workspace_name=workspace_name,
@@ -288,7 +288,7 @@ class MainHandler(BaseRequestHandler):
                     projects_id_dict=projects_id_dict,
                     tags=tags,
                     time_entries=time_entries,
-                    summary=summary,
+                    # summary=summary,
                     )
 
 
